@@ -1,0 +1,72 @@
+# GitHub Actions CI/CD Pipeline for Deployment to EC2
+name: CI/CD Deploy Notification Service
+
+# This workflow runs when code is pushed to the 'kumuditha-task' branch
+on:
+  push:
+    branches:
+      - kumuditha-task
+
+jobs:
+  # Job 1: Build & Test (Ensures code quality before deployment)
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Set up Node.js 18
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        # Assuming package.json is in the root of the repo (notifications folder)
+        run: npm install
+
+      - name: Run application build
+        run: npm run build
+      
+      # Placeholder for your actual test command
+      - name: Run tests
+        run: echo "Skipping tests. Replace with 'npm test' if available."
+
+  # Job 2: Deploy to EC2 (Only runs after build_and_test is successful)
+  deploy:
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code for deployment
+        uses: actions/checkout@v4
+        
+      # Action to execute commands remotely via SSH
+      - name: SSH and Deploy to EC2
+        uses: easingthemes/ssh-deploy@main
+        with:
+          # Secrets (must be added in the next step!)
+          SSH_PRIVATE_KEY: ${{ secrets.AWS_EC2_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.EC2_HOST }}
+          REMOTE_USER: ${{ secrets.EC2_USER }}
+          
+          # This is the path on the EC2 where your git repo is cloned
+          # NOTE: This uses the confirmed path /home/ubuntu/notifications
+          TARGET: /home/ubuntu/notifications
+          
+          # Script to run on the EC2 instance
+          SCRIPT: |
+            echo "--- Starting Deployment on EC2 ---"
+            
+            # 1. Navigate to the local repository directory on the EC2
+            cd /home/ubuntu/notifications
+            
+            # 2. Pull the latest code from the kumuditha-task branch
+            echo "Pulling latest code..."
+            /usr/bin/git pull origin kumuditha-task
+            
+            # 3. Execute the deploy script (this handles the Docker restart)
+            echo "Running deploy.sh to rebuild and restart Docker containers..."
+            # Execute the deploy script from the current directory
+            /usr/bin/sudo /bin/bash deploy.sh
+            
+            echo "--- Deployment Finished ---"
