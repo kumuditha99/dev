@@ -52,7 +52,7 @@ jobs:
 
             - name: Deploying to EB
               run: |
-                  eb init --platform "Docker running on 64bit Amazon Linux 2023/4.7.5" "${{ secrets.EB_APP_NAME }}" --region "${{ env.AWS_REGION }}" --keyname "notifications-ssh-us"
+                  eb init --platform "Docker running on 64bit Amazon Linux 2023" "${{ secrets.EB_APP_NAME }}" --region "${{ env.AWS_REGION }}" --keyname "notifications-ssh-us"
                   eb use "${{ secrets.EB_ENV_NAME }}"
                   eb setenv \
                     DB_HOST=${{ secrets.DB_HOST }}
