@@ -5,7 +5,7 @@ set -e
 echo "Generating .env file from EB environment variables..."
 
 PRIVATE_IP=$(hostname -I | awk '{print $1}')
-COMBINED_HOSTNAME="${HOSTNAME}-${PRIVATE_IP}"
+COMBINED_HOSTNAME="notification-instance-${PRIVATE_IP}"
 
 cat > .env <<EOF
 DB_HOST=${DB_HOST}
