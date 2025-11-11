@@ -9,21 +9,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-    environment:
-      - NODE_ENV=development
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_DATABASE=${DB_DATABASE}
-      - MINIO_ENDPOINT=minio
-      - MINIO_PORT=9000
-      - BASIC_AUTH_USER=${BASIC_AUTH_USER}
-      - BASIC_AUTH_PASS=${BASIC_AUTH_PASS}
-      # Retry Configuration
-      - MAX_RETRIES=${MAX_RETRIES:-3}
-      - RETRY_DELAY_MS=${RETRY_DELAY_MS:-60000}
-      - USE_EXPONENTIAL_BACKOFF=${USE_EXPONENTIAL_BACKOFF:-true}
+    env_file:
+      - .env
     depends_on:
       - postgres
     command: >
@@ -40,11 +27,8 @@ services:
     restart: always
     ports:
       - '5432:5432'
-    environment:
-      POSTGRES_HOST: ${DB_HOST}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE}
+    env_file:
+      - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
 
