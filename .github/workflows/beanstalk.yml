@@ -1,0 +1,68 @@
+name: Deploy to Beanstalk
+
+on:
+    push:
+        branches:
+            - kumuditha-task
+
+env:
+    AWS_REGION: "${{ secrets.AWS_REGION }}"
+    AWS_ACCESS_KEY_ID: "${{ secrets.AWS_ACCESS_KEY_ID }}"
+    AWS_SECRET_ACCESS_KEY: "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        environment:
+            name: "prod"
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.x"
+
+            - name: Upgrade pip and tools
+              run: |
+                  python -m pip install --upgrade pip setuptools wheel
+
+            - name: Install virtualenv
+              run: python -m pip install --upgrade virtualenv
+
+            - name: Clone EB CLI installer
+              run: git clone https://github.com/aws/aws-elastic-beanstalk-cli-setup.git
+
+            - name: Install EB CLI
+              run: python ./aws-elastic-beanstalk-cli-setup/scripts/ebcli_installer.py
+
+            - name: Add EB CLI to PATH
+              run: echo "$HOME/.ebcli-virtual-env/bin" >> $GITHUB_PATH
+
+            - name: Check EB CLI version
+              run: eb --version
+
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@v4.1.0
+              with:
+                  aws-region: "${{ env.AWS_REGION }}"
+                  aws-access-key-id: "${{ env.AWS_ACCESS_KEY_ID }}"
+                  aws-secret-access-key: "${{ env.AWS_SECRET_ACCESS_KEY }}"
+
+            - name: Deploying to EB
+              run: |
+                  eb init --platform "Docker running on 64bit Amazon Linux 2023/4.7.5" "${{ secrets.EB_APP_NAME }}" --region "${{ env.AWS_REGION }}" --keyname "notifications-ssh-us"
+                  eb use "${{ secrets.EB_ENV_NAME }}"
+                  eb setenv \
+                    DB_HOST=${{ secrets.DB_HOST }}
+                    DB_PORT=${{ secrets.DB_PORT }}
+                    DB_USERNAME=${{ secrets.DB_USERNAME }}
+                    DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+                    DB_DATABASE=${{ secrets.DB_DATABASE }}
+                    HOSTNAME=${{ secrets.HOSTNAME }}
+                    LOKI_ENDPOINT=${{ secrets.LOKI_ENDPOINT }}
+                    PROMETHEUS_ENDPOINT=${{ secrets.PROMETHEUS_ENDPOINT }}
+                  chmod +x .platform/hooks/predeploy/01-generate-env.sh
+                  chmod +x .platform/hooks/predeploy/02-generate-alloy-config.sh
+                  eb deploy "${{ secrets.EB_ENV_NAME }}"

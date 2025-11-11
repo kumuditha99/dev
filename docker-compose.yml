@@ -1,0 +1,76 @@
+services:
+  backend:
+    container_name: notification-nestjs-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - '80:8080'
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE}
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - BASIC_AUTH_USER=${BASIC_AUTH_USER}
+      - BASIC_AUTH_PASS=${BASIC_AUTH_PASS}
+      # Retry Configuration
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - RETRY_DELAY_MS=${RETRY_DELAY_MS:-60000}
+      - USE_EXPONENTIAL_BACKOFF=${USE_EXPONENTIAL_BACKOFF:-true}
+    depends_on:
+      - postgres
+    command: >
+      sh -c "
+        echo 'Running docker-compose.dev' &&
+        
+        echo 'Starting server...' &&
+        ts-node-dev --respawn --transpile-only src/main.ts
+      "
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: notification-postgres-dev
+    restart: always
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_HOST: ${DB_HOST}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    hostname: $HOSTNAME
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - 12345:12345
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy
+      - alloy_data:/var/lib/alloy/data
+      - /:/rootfs:ro
+      - /run:/run:ro
+      - /var/log:/var/log:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker/:ro
+      - /run/udev/data:/run/udev/data:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  alloy_data: {}
