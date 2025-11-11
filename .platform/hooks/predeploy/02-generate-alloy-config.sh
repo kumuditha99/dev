@@ -2,7 +2,7 @@
 # Exit on error
 set -e
 
-echo "Generating Alloy config at $CONFIG_FILE..."
+touch config.alloy
 
 cat > config.alloy <<EOF
 // SECTION: TARGETS
