@@ -2,7 +2,7 @@
 # Exit on error
 set -e
 
-touch config.alloy
+rm -rf config.alloy
 
 cat > config.alloy <<EOF
 // SECTION: TARGETS
